@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" width="360" height="80">
+  <defs>
+    <!-- Gradient for Logo Shield -->
+    <linearGradient id="emblemGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="50%" stop-color="#FFB300" />
+      <stop offset="100%" stop-color="#FF8F00" />
+    </linearGradient>
+    <linearGradient id="redBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E53935" />
+      <stop offset="100%" stop-color="#B71C1C" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Circular MSRTC Emblem -->
+  <g transform="translate(10, 6)" filter="url(#shadow)">
+    <!-- Outer Ring -->
+    <circle cx="34" cy="34" r="32" fill="url(#redBorder)" />
+    <!-- Golden Inner Ring -->
+    <circle cx="34" cy="34" r="28" fill="#FFF8E1" stroke="url(#emblemGold)" stroke-width="2.5" />
+    <!-- Core Emblem Circle -->
+    <circle cx="34" cy="34" r="23" fill="url(#emblemGold)" />
+
+    <!-- Ashoka / Torch / Decorative Peak on Top -->
+    <path d="M 34 14 L 37 20 L 31 20 Z" fill="#B71C1C" />
+    
+    <!-- Iconic Running Deer / Stag Silhouette (Symbol of MSRTC Speed & Service) -->
+    <path d="M 22 41 C 24 38, 26 35, 29 33 C 31 31.5, 33 30, 36 29 C 38 28.5, 40 29.5, 41 31.5 C 41.5 32.5, 41 34, 39.5 35 C 38 36, 36.5 37, 35 38.5 C 36 39.5, 38 41, 41 42 C 43 42.6, 45 42, 46 40 C 47 38.5, 48 37, 49 35.5 C 47.5 35, 46 34.5, 45 33.5 C 44 32.5, 45 31, 46.5 30.5 C 48 30, 49.5 31, 50 32.5 C 50.8 34.5, 50 37, 48 39.5 C 46 42, 42.5 44, 39 44 C 36 44, 33 42.5, 31 41 L 28 45 L 26 44.5 L 29 39.5 C 27 40.5, 24.5 41.5, 22 41 Z" fill="#7F0000" />
+    
+    <!-- Antlers -->
+    <path d="M 40 29 C 41 26, 43 23, 46 22 M 43 25 C 45 25.5, 47 25, 48 24 M 41 28 C 41 25, 40 23, 38 21.5" stroke="#7F0000" stroke-width="1.6" stroke-linecap="round" fill="none" />
+
+    <!-- Tiny decorative stars/dots -->
+    <circle cx="21" cy="34" r="1.5" fill="#B71C1C" />
+    <circle cx="47" cy="34" r="1.5" fill="#B71C1C" />
+  </g>
+
+  <!-- Typography -->
+  <!-- MSRTC Main Title -->
+  <text x="86" y="40" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="900" fill="#E64A19" letter-spacing="1">MSRTC</text>
+  
+  <!-- Subtitle: Full Form -->
+  <text x="87" y="56" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="700" fill="#6B7280" letter-spacing="0.8">MAHARASHTRA STATE ROAD TRANSPORT CORPORATION</text>
+</svg>
+

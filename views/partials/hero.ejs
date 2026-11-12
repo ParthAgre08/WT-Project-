@@ -1,0 +1,183 @@
+<section class="hero-section">
+  <div class="hero-overlay"></div>
+  <div class="hero-container">
+    
+    <!-- Hero Left Column: Brand Statement & Voice Assistant -->
+    <div class="hero-content">
+      <!-- Decorative Accent Line -->
+      <div class="accent-bar" aria-hidden="true"></div>
+
+      <!-- Main Headline -->
+      <h1 class="hero-title">
+        Your <span class="highlight-brand">MSRTC</span><br />
+        Your Journey,<br />
+        Your Convenience
+      </h1>
+
+      <!-- Subheadline -->
+      <p class="hero-description">
+        Don't worry if a direct bus isn't available! Find alternative routes for your journey and plan your trip using available travel options
+      </p>
+
+      <!-- Voice Search Pill Bar -->
+      <div class="voice-search-wrapper">
+        <form action="/find-buses" method="GET" class="voice-search-bar" id="voiceSearchBar">
+          <input 
+            type="text" 
+            id="voiceSearchInput" 
+            name="text"
+            class="voice-input" 
+            placeholder="Speak bus travel query..." 
+            aria-label="Speak bus travel query"
+            value="<%= (typeof spokenText !== 'undefined' && spokenText) ? spokenText : '' %>"
+            autocomplete="off"
+          />
+          <button 
+            type="button" 
+            id="voiceMicBtn" 
+            class="voice-mic-btn" 
+            aria-label="Activate voice search"
+            title="Click to speak"
+          >
+            <!-- Microphone Icon -->
+            <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </button>
+        </form>
+        
+        <!-- Voice Search Active/Status Indicator -->
+        <div class="voice-badge">
+          <span class="status-dot"></span>
+          <span id="voiceStatusText">Voice-based search</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Right Column: Booking Card -->
+    <div class="hero-card-wrapper">
+      <div class="booking-card">
+        <div class="booking-card-header">
+          <h2 class="card-title">Book Your Journey</h2>
+          <p class="card-subtitle">Find the best bus routes for your next trip.</p>
+        </div>
+
+        <form action="/find-buses" method="POST" class="booking-form" id="busBookingForm">
+          
+          <!-- From Field -->
+          <div class="form-group">
+            <label for="fromCity" class="form-label">From</label>
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                id="fromCity" 
+                name="from" 
+                class="form-control" 
+                placeholder="Enter departure city" 
+                list="maharashtra-cities" 
+                value="<%= (typeof from !== 'undefined' && from) ? from : '' %>"
+                required 
+                autocomplete="off"
+              />
+              <span class="input-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Swap City Button (Helper UX) -->
+          <div class="swap-cities-container">
+            <button type="button" id="swapCitiesBtn" class="btn-swap" title="Swap departure and destination" aria-label="Swap cities">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 15 5 5 5-5"/>
+                <path d="m7 9 5-5 5 5"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- To Field -->
+          <div class="form-group">
+            <label for="toCity" class="form-label">To</label>
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                id="toCity" 
+                name="to" 
+                class="form-control" 
+                placeholder="Enter destination city" 
+                list="maharashtra-cities" 
+                value="<%= (typeof to !== 'undefined' && to) ? to : '' %>"
+                required 
+                autocomplete="off"
+              />
+              <span class="input-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Journey Date Field -->
+          <div class="form-group">
+            <label for="journeyDate" class="form-label">Journey Date</label>
+            <div class="input-wrapper date-wrapper">
+              <input 
+                type="date" 
+                id="journeyDate" 
+                name="date" 
+                class="form-control date-control" 
+                required 
+              />
+              <span class="input-icon date-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                  <line x1="16" x2="16" y1="2" y2="6"/>
+                  <line x1="8" x2="8" y1="2" y2="6"/>
+                  <line x1="3" x2="21" y1="10" y2="10"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-search-buses">
+            Search Buses
+          </button>
+        </form>
+
+        <!-- Cities Datalist for Quick Autocomplete -->
+        <datalist id="maharashtra-cities">
+          <option value="Mumbai"></option>
+          <option value="Pune"></option>
+          <option value="Nashik"></option>
+          <option value="Chhatrapati Sambhajinagar (Aurangabad)"></option>
+          <option value="Nagpur"></option>
+          <option value="Kolhapur"></option>
+          <option value="Solapur"></option>
+          <option value="Satara"></option>
+          <option value="Ratnagiri"></option>
+          <option value="Shirdi"></option>
+          <option value="Mahabaleshwar"></option>
+          <option value="Thane"></option>
+          <option value="Alibaug"></option>
+          <option value="Nanded"></option>
+          <option value="Jalgaon"></option>
+          <option value="Dhule"></option>
+          <option value="Amravati"></option>
+          <option value="Sangli"></option>
+          <option value="Ahmednagar"></option>
+          <option value="Latur"></option>
+        </datalist>
+      </div>
+    </div>
+
+  </div>
+</section>
+
