@@ -2,6 +2,8 @@ const express = require('express');
 const chrono = require('chrono-node');
 const mongoose = require('mongoose');
 const Bus = require('./Models/Bus');
+const BusSeatInventory = require('./Models/BusSeatInventory');
+const Booking = require('./Models/Booking');
 
 const app = express();
 
@@ -191,37 +193,49 @@ app.post(['/find-buses', '/findbuses'], async (req, res) => {
 });
 
 // GET route: Seat selection page for a specific bus
+// Retrieves bus details from `bus_schedules` and seat inventory from `bus_seat_inventories`
 app.get('/select-seats/:busId', async (req, res) => {
     const { busId } = req.params;
 
     try {
-        // Validate if busId is a valid MongoDB ObjectId
+        // Step 1: Validate if busId is a valid MongoDB ObjectId format
         if (!mongoose.Types.ObjectId.isValid(busId)) {
             return res.status(400).render('select_seats', {
                 bus: null,
+                seatInventory: null,
                 error: 'Invalid bus ID provided.'
             });
         }
 
-        // Fetch bus details by ID
+        // Step 2: Fetch bus journey details from `bus_schedules`
         const bus = await Bus.findById(busId).lean();
 
-        // Handle bus not found
+        // Step 3: Handle case where bus document does not exist
         if (!bus) {
             return res.status(404).render('select_seats', {
                 bus: null,
+                seatInventory: null,
                 error: 'The requested bus schedule could not be found.'
             });
         }
 
-        // Ensure bookedSeats is always an array
-        if (!Array.isArray(bus.bookedSeats)) {
-            bus.bookedSeats = [];
+        // Step 4: Fetch the seat inventory from `bus_seat_inventories` using busId
+        // We do NOT generate inventories here — the script must be run separately first.
+        const seatInventory = await BusSeatInventory.findOne({ busId: bus._id }).lean();
+
+        // Step 5: Handle case where no seat inventory has been generated for this bus
+        if (!seatInventory) {
+            return res.status(404).render('select_seats', {
+                bus,
+                seatInventory: null,
+                error: 'Seat inventory not found for this bus. Please contact support or run the inventory generation script.'
+            });
         }
 
-        // Render select_seats.ejs with complete bus information
+        // Step 6: Render select_seats.ejs with both bus info and seat inventory
         res.render('select_seats', {
             bus,
+            seatInventory,
             error: null
         });
 
@@ -229,8 +243,150 @@ app.get('/select-seats/:busId', async (req, res) => {
         console.error('Error fetching bus for seat selection:', err);
         res.status(500).render('select_seats', {
             bus: null,
+            seatInventory: null,
             error: 'An error occurred while loading the seat selection page.'
         });
+    }
+});
+
+
+
+// POST route: Confirm seat booking
+// Called when user clicks "Continue Booking" on the seat selection page.
+// 1. Validates the selected seats are still available.
+// 2. Creates a new Booking document in `bookings`.
+// 3. Marks the booked seats in `bus_seat_inventories` as "booked".
+// 4. Decrements `availableSeats` on the bus schedule.
+// 5. Redirects to the confirmation page.
+app.post('/book-seats', async (req, res) => {
+    try {
+        const { busId, selectedSeats } = req.body;
+
+        // ── Step 1: Validate inputs ───────────────────────────────────────────
+
+        // busId must be a valid MongoDB ObjectId
+        if (!busId || !mongoose.Types.ObjectId.isValid(busId)) {
+            return res.status(400).send('Invalid bus ID.');
+        }
+
+        // selectedSeats comes as a comma-separated string from the form
+        // e.g. "A1,A2,B3"
+        const seatArray = typeof selectedSeats === 'string'
+            ? selectedSeats.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+
+        if (seatArray.length === 0) {
+            return res.status(400).send('No seats selected. Please go back and select at least one seat.');
+        }
+
+        // ── Step 2: Fetch bus details ─────────────────────────────────────────
+        const bus = await Bus.findById(busId);
+        if (!bus) {
+            return res.status(404).send('Bus schedule not found.');
+        }
+
+        // ── Step 3: Fetch the seat inventory ─────────────────────────────────
+        const inventory = await BusSeatInventory.findOne({ busId: bus._id });
+        if (!inventory) {
+            return res.status(404).send('Seat inventory not found for this bus.');
+        }
+
+        // ── Step 4: Check that all selected seats are still "available" ───────
+        const unavailableSeats = [];
+
+        for (const seatNum of seatArray) {
+            const seatDoc = inventory.seats.find(s => s.seatNumber === seatNum);
+            if (!seatDoc || seatDoc.status !== 'available') {
+                unavailableSeats.push(seatNum);
+            }
+        }
+
+        // If any seat was grabbed by someone else, abort and send user back
+        if (unavailableSeats.length > 0) {
+            return res.status(409).send(
+                `Sorry, the following seat(s) are no longer available: ${unavailableSeats.join(', ')}. ` +
+                `Please go back and choose different seats.`
+            );
+        }
+
+        // ── Step 5: Create the Booking document in `bookings` ─────────────────
+        const farePerSeat = bus.fare || 0;
+        const totalFare   = farePerSeat * seatArray.length;
+
+        const newBooking = new Booking({
+            busId:       bus._id,
+            seatNumbers: seatArray,
+            farePerSeat: farePerSeat,
+            totalFare:   totalFare,
+            status:      'confirmed'
+        });
+
+        const savedBooking = await newBooking.save();
+
+        console.log(`[BOOKING CREATED] ID: ${savedBooking._id} | Seats: ${seatArray.join(', ')} | Fare: ₹${totalFare}`);
+
+        // ── Step 6: Update bus_seat_inventories — mark seats as "booked" ──────
+        // For each selected seat, set status → "booked" and bookingId → savedBooking._id
+        for (const seatNum of seatArray) {
+            const seatDoc = inventory.seats.find(s => s.seatNumber === seatNum);
+            if (seatDoc) {
+                seatDoc.status    = 'booked';
+                seatDoc.bookingId = savedBooking._id;
+            }
+        }
+
+        // Save the updated inventory document back to MongoDB
+        await inventory.save();
+
+        console.log(`[INVENTORY UPDATED] Bus: ${bus._id} | Booked seats: ${seatArray.join(', ')}`);
+
+        // ── Step 7: Decrement availableSeats on the bus schedule ─────────────
+        await Bus.findByIdAndUpdate(bus._id, {
+            $inc: { availableSeats: -seatArray.length }
+        });
+
+        console.log(`[BUS UPDATED] availableSeats decremented by ${seatArray.length}`);
+
+        // ── Step 8: Redirect to booking confirmation page ─────────────────────
+        res.redirect(`/booking-confirmation/${savedBooking._id}`);
+
+    } catch (err) {
+        console.error('Error processing booking:', err);
+        res.status(500).send('An error occurred while processing your booking. Please try again.');
+    }
+});
+
+
+
+// GET route: Booking confirmation page
+// Displays the confirmed booking details after a successful seat booking.
+app.get('/booking-confirmation/:bookingId', async (req, res) => {
+    const { bookingId } = req.params;
+
+    try {
+        // Validate bookingId
+        if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+            return res.status(400).send('Invalid booking ID.');
+        }
+
+        // Fetch the booking document
+        const booking = await Booking.findById(bookingId).lean();
+        if (!booking) {
+            return res.status(404).send('Booking not found.');
+        }
+
+        // Fetch the associated bus details for display
+        const bus = await Bus.findById(booking.busId).lean();
+        if (!bus) {
+            return res.status(404).send('Bus details not found for this booking.');
+        }
+
+        // Render confirmation page with booking + bus details
+        res.render('booking_confirmation', { booking, bus });
+
+    } catch (err) {
+        console.error('Error fetching booking confirmation:', err);
+        res.status(500).send('An error occurred while loading the booking confirmation.');
     }
 });
 

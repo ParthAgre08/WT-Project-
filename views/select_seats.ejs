@@ -666,7 +666,7 @@
       Back to Available Buses
     </a>
 
-    <% if (typeof error !== 'undefined' && error) { %>
+    <% if ((typeof error !== 'undefined' && error) || !seatInventory) { %>
 
       <!-- Error / Bus Not Found State -->
       <div class="empty-state-card" style="max-width: 650px; margin: 40px auto; text-align: center;">
@@ -688,7 +688,7 @@
         </a>
       </div>
 
-    <% } else if (bus) { %>
+    <% } else if (bus && seatInventory) { %>
 
       <%
         // Format journey date nicely
@@ -707,11 +707,22 @@
           }
         }
 
-        // List of booked seats from DB (empty array fallback)
-        const bookedList = Array.isArray(bus.bookedSeats) ? bus.bookedSeats : [];
+        /*
+         * Build a lookup map from the seatInventory for fast O(1) status checks.
+         * seatInventory.seats is an array of { seatNumber, status, bookingId }
+         * coming directly from MongoDB (bus_seat_inventories collection).
+         *
+         * Example: seatStatusMap = { "A1": "booked", "A2": "available", ... }
+         */
+        const seatStatusMap = {};
+        if (seatInventory && Array.isArray(seatInventory.seats)) {
+          seatInventory.seats.forEach(seat => {
+            seatStatusMap[seat.seatNumber] = seat.status;
+          });
+        }
 
-        // 2+2 layout rows (A through J, total 10 rows = 40 seats)
-        const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        // 2+2 layout rows (A through H, total 8 rows = 32 seats)
+        const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
       %>
 
       <!-- Bus Info Header Strip -->
@@ -806,10 +817,15 @@
                   const s3 = `${rowLetter}3`;
                   const s4 = `${rowLetter}4`;
 
-                  const isS1Booked = bookedList.includes(s1);
-                  const isS2Booked = bookedList.includes(s2);
-                  const isS3Booked = bookedList.includes(s3);
-                  const isS4Booked = bookedList.includes(s4);
+                  /*
+                   * Read seat status directly from the MongoDB inventory map.
+                   * seatStatusMap was built from seatInventory.seats above.
+                   * Falls back to "available" if a seat is somehow missing from the map.
+                   */
+                  const isS1Booked = (seatStatusMap[s1] === 'booked');
+                  const isS2Booked = (seatStatusMap[s2] === 'booked');
+                  const isS3Booked = (seatStatusMap[s3] === 'booked');
+                  const isS4Booked = (seatStatusMap[s4] === 'booked');
                 %>
 
                 <div class="seat-row" role="row">
@@ -966,6 +982,15 @@
               </div>
             </div>
 
+            <!-- Hidden Booking Form -->
+            <!-- This form is submitted programmatically when Continue Booking is clicked -->
+            <form id="bookingForm" action="/book-seats" method="POST" style="display: none;">
+              <!-- busId: identifies which bus the user is booking -->
+              <input type="hidden" name="busId" value="<%= bus._id %>">
+              <!-- selectedSeats: comma-separated seat numbers, populated by JS before submit -->
+              <input type="hidden" name="selectedSeats" id="hiddenSelectedSeats" value="">
+            </form>
+
             <!-- Proceed Button (Disabled until at least 1 seat selected) -->
             <button
               type="button"
@@ -980,7 +1005,7 @@
             </button>
 
             <p class="stage-notice">
-              Seat selection is active. Passenger details and payment will be available in the next release.
+              Confirm your seat selection. Selected seats will be reserved immediately.
             </p>
 
           </div>
@@ -999,19 +1024,20 @@
           const selectedSeats = new Set();
 
           // DOM Elements
-          const seatButtons = document.querySelectorAll('.seat.available');
-          const selectedChipsContainer = document.getElementById('selectedSeatsChips');
-          const selectedCountBadge = document.getElementById('selectedCountBadge');
-          const fareSeatCount = document.getElementById('fareSeatCount');
-          const fareCalcFormula = document.getElementById('fareCalcFormula');
-          const totalFareDisplay = document.getElementById('totalFareDisplay');
-          const btnProceed = document.getElementById('btnProceedBooking');
+          const seatButtons               = document.querySelectorAll('.seat.available');
+          const selectedChipsContainer    = document.getElementById('selectedSeatsChips');
+          const selectedCountBadge        = document.getElementById('selectedCountBadge');
+          const fareSeatCount             = document.getElementById('fareSeatCount');
+          const fareCalcFormula           = document.getElementById('fareCalcFormula');
+          const totalFareDisplay          = document.getElementById('totalFareDisplay');
+          const btnProceed                = document.getElementById('btnProceedBooking');
+          const bookingForm               = document.getElementById('bookingForm');
+          const hiddenSelectedSeats       = document.getElementById('hiddenSelectedSeats');
 
-          // Handle seat button click
+          // ── Seat click: toggle selection ─────────────────────────────────
           seatButtons.forEach(button => {
             button.addEventListener('click', () => {
               const seatNum = button.getAttribute('data-seat');
-
               if (!seatNum) return;
 
               if (selectedSeats.has(seatNum)) {
@@ -1030,10 +1056,25 @@
             });
           });
 
-          // Update summary UI and dynamic fare calculation
+          // ── Continue Booking button: populate form and submit ─────────────
+          btnProceed.addEventListener('click', () => {
+            if (selectedSeats.size === 0) return;
+
+            // Write comma-separated seat numbers into the hidden input
+            hiddenSelectedSeats.value = Array.from(selectedSeats).join(',');
+
+            // Show loading state so the user knows something is happening
+            btnProceed.disabled = true;
+            btnProceed.querySelector('span').textContent = 'Processing...';
+
+            // Submit the hidden form → POST /book-seats
+            bookingForm.submit();
+          });
+
+          // ── Update summary UI and dynamic fare calculation ────────────────
           function updateSeatDisplay() {
-            const count = selectedSeats.size;
-            const totalFare = count * busFare;
+            const count      = selectedSeats.size;
+            const totalFare  = count * busFare;
             const sortedSeats = Array.from(selectedSeats).sort((a, b) => {
               const rowA = a.charAt(0);
               const rowB = b.charAt(0);
@@ -1042,14 +1083,14 @@
             });
 
             // Update seat count badges
-            selectedCountBadge.textContent = count === 1 ? '1 Seat' : `${count} Seats`;
-            fareSeatCount.textContent = count;
-            fareCalcFormula.textContent = `${count} × ₹${busFare}`;
+            selectedCountBadge.textContent  = count === 1 ? '1 Seat' : `${count} Seats`;
+            fareSeatCount.textContent       = count;
+            fareCalcFormula.textContent     = `${count} × ₹${busFare}`;
 
-            // Update Total Fare: Number of Selected Seats × Bus Fare
+            // Update Total Fare display
             totalFareDisplay.textContent = `₹${totalFare.toLocaleString('en-IN')}`;
 
-            // Update selected seats chips
+            // Update selected seat chips and button state
             if (count === 0) {
               selectedChipsContainer.innerHTML = '<span class="no-selection-hint">Please select seats from the bus layout</span>';
               btnProceed.disabled = true;
