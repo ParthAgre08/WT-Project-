@@ -1,0 +1,485 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Available MSRTC Buses - Search and book bus tickets across Maharashtra" />
+
+  <title>Available Buses | <%= from || 'Search' %> to <%= to || 'Destination' %> - MSRTC</title>
+
+  <link rel="icon" type="image/svg+xml" href="/images/msrtc-logo.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+
+<body>
+
+  <!-- Header -->
+  <%- include('partials/header') %>
+
+  <main class="results-page">
+
+    <!-- Search Summary -->
+    <section class="search-summary-strip">
+
+      <div class="summary-container">
+
+        <div class="route-details">
+
+          <div class="route-cities">
+
+            <span class="city-from">
+              <%= from || 'Origin' %>
+            </span>
+
+            <span class="route-arrow">
+              →
+            </span>
+
+            <span class="city-to">
+              <%= to || 'Destination' %>
+            </span>
+
+          </div>
+
+          <div class="route-meta">
+
+            <% if (date) { %>
+
+              <span class="meta-item">
+                📅 <%= date %>
+              </span>
+
+            <% } %>
+
+            <span class="meta-item">
+              🚌 <%= buses ? buses.length : 0 %> Buses Found
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="summary-actions">
+
+          <a href="/" class="btn-modify-search">
+            ✎ Modify Search
+          </a>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- Main Results -->
+    <section class="results-container">
+
+    <% if (typeof error !== 'undefined' && error) { %>
+
+        <!-- Error Message -->
+
+        <div class="empty-state-card">
+
+          <h2 class="empty-state-title">
+            Something went wrong!
+          </h2>
+
+          <p class="empty-state-desc">
+            <%= error %>
+          </p>
+
+          <a href="/" class="btn-search-again">
+            Search Again
+          </a>
+
+        </div>
+
+      <% } else if (buses && buses.length > 0) { %>
+
+        <!-- Buses Found -->
+
+        <div class="buses-header">
+
+          <h1 class="results-title">
+            Available Buses
+          </h1>
+
+          <p class="results-count">
+            Showing <%= buses.length %> bus<%= buses.length > 1 ? 'es' : '' %> matching your route
+          </p>
+
+        </div>
+
+
+        <!-- Bus List -->
+
+        <div class="buses-list">
+
+          <% buses.forEach(function(bus) { %>
+
+            <div class="bus-card">
+
+              <!-- Bus Information -->
+
+              <div class="bus-card-top">
+
+                <div class="bus-identity">
+
+                  <div class="bus-icon-badge">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="22"
+                         height="22"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+
+                      <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                      <circle cx="7" cy="16" r="2"></circle>
+                      <circle cx="17" cy="16" r="2"></circle>
+                      <path d="M7 8h10"></path>
+                      <path d="M3 12h18"></path>
+
+                    </svg>
+
+                  </div>
+
+                  <div>
+
+                    <h3 class="bus-name">
+                      <%= bus.busName || 'MSRTC Express' %>
+                    </h3>
+
+                    <div class="bus-tags">
+
+                      <span class="bus-tag bus-tag-type">
+                        <%= bus.busType || 'Ordinary / Express' %>
+                      </span>
+
+                      <% if (bus.busNumber) { %>
+
+                        <span class="bus-tag bus-tag-number">
+                          <%= bus.busNumber %>
+                        </span>
+
+                      <% } %>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                <!-- Fare -->
+
+                <div class="bus-fare-badge">
+
+                  <span class="fare-label">
+                    Starting from
+                  </span>
+
+                  <span class="fare-amount">
+                    ₹ <%= bus.fare %>
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <!-- Journey Details -->
+
+              <div class="bus-card-middle">
+
+                <!-- Departure -->
+
+                <div class="timeline-point departure">
+
+                  <span class="point-time">
+                    <%= bus.departureTime || 'Time unavailable' %>
+                  </span>
+
+                  <span class="point-city">
+                    <%= bus.fromPlace || from %>
+                  </span>
+
+                  <span class="point-terminal">
+                    Departure Location
+                  </span>
+
+                </div>
+
+
+                <!-- Route Timeline -->
+
+                <div class="timeline-duration">
+
+                  <span class="duration-time">
+                    Journey Route
+                  </span>
+
+                  <div class="duration-line">
+
+                    <span class="dot start"></span>
+
+                    <span class="line"></span>
+
+                    <span class="arrow">➔</span>
+
+                    <span class="dot end"></span>
+
+                  </div>
+
+                  <span class="trip-type">
+                    Bus Service
+                  </span>
+
+                </div>
+
+
+                <!-- Arrival -->
+
+                <div class="timeline-point arrival">
+
+                  <span class="point-time">
+                    Arrival time not specified
+                  </span>
+
+                  <span class="point-city">
+                    <%= bus.toPlace || to %>
+                  </span>
+
+                  <span class="point-terminal">
+                    Arrival Location
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <!-- Actual Route Description -->
+
+              <div class="bus-route-description">
+
+                <span class="route-label">
+                  🛣 Bus Route:
+                </span>
+
+                <span class="route-text">
+                  <%= bus.description || 'Route information unavailable' %>
+                </span>
+
+              </div>
+
+
+              <!-- Seats and Booking -->
+
+              <div class="bus-action-group">
+
+                <% const seats = bus.availableSeats ?? 0; %>
+
+                <div class="seat-availability <%= seats < 10 ? 'low-seats' : 'good-seats' %>">
+
+                  <span class="seat-dot"></span>
+
+                  <span class="seat-count">
+
+                    <strong><%= seats %></strong>
+                    Seats Available
+
+                  </span>
+
+                </div>
+
+
+                <a
+    href="/select-seats/<%= bus._id %>"
+    class="btn-book-seat">
+
+    Select Seats
+
+</a>
+
+              </div>
+
+            </div>
+
+          <% }); %>
+
+        </div>
+
+
+      <% } else { %>
+
+        <!-- No Buses Available -->
+
+        <div class="empty-state-card">
+
+          <div class="empty-icon-wrapper">
+
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="64"
+                 height="64"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 stroke-linecap="round"
+                 stroke-linejoin="round">
+
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <circle cx="7" cy="16" r="2"></circle>
+              <circle cx="17" cy="16" r="2"></circle>
+              <line x1="2" y1="2" x2="22" y2="22"></line>
+              <path d="M7 8h10"></path>
+              <path d="M3 12h18"></path>
+
+            </svg>
+
+          </div>
+
+
+          <h2 class="empty-state-title">
+            Buses are not available
+          </h2>
+
+
+          <p class="empty-state-desc">
+
+            We couldn't find any buses operating from
+
+            <strong class="highlight-city">
+              <%= from || 'selected departure' %>
+            </strong>
+
+            to
+
+            <strong class="highlight-city">
+              <%= to || 'selected destination' %>
+            </strong>
+
+            <% if (date) { %>
+
+              on <strong><%= date %></strong>
+
+            <% } %>.
+
+          </p>
+
+
+          <div class="empty-suggestions">
+
+            <h4 class="suggestions-heading">
+              Suggestions to help you travel:
+            </h4>
+
+            <ul class="suggestions-list">
+
+              <li>
+                Check your journey date and try another date.
+              </li>
+
+              <li>
+                Verify your departure and destination cities.
+              </li>
+
+              <li>
+                Consider alternative routes through Pune, Mumbai or Nashik.
+              </li>
+
+              <li>
+                Check nearby bus depots for connecting services.
+              </li>
+
+            </ul>
+
+          </div>
+
+
+          <div class="empty-actions">
+
+            <a href="/" class="btn-search-again">
+
+              Search Again
+
+            </a>
+
+          </div>
+
+        </div>
+
+      <% } %>
+
+    </section>
+
+  </main>
+
+
+  <!-- Footer -->
+
+  <%- include('partials/footer') %>
+
+
+  <!-- Additional Route Styling -->
+
+  <style>
+
+    .bus-route-description {
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: #f8fafc;
+      border: 1px solid #e8edf3;
+      border-radius: 10px;
+    }
+
+    .route-label {
+      color: #f4511e;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .route-text {
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .bus-card {
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+
+      .bus-route-description {
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .bus-card-middle {
+        gap: 12px;
+      }
+
+    }
+
+  </style>
+
+</body>
+</html>

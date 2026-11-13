@@ -11,8 +11,10 @@
     "start": "nodemon app.js"
   },
   "dependencies": {
+    "chrono-node": "^2.10.3",
     "ejs": "^7.0.2",
     "express": "^5.3.0",
+    "mongoose": "^9.12.1",
     "nodemon": "^3.1.14"
   }
 }
