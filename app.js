@@ -190,6 +190,50 @@ app.post(['/find-buses', '/findbuses'], async (req, res) => {
     }
 });
 
+// GET route: Seat selection page for a specific bus
+app.get('/select-seats/:busId', async (req, res) => {
+    const { busId } = req.params;
+
+    try {
+        // Validate if busId is a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(busId)) {
+            return res.status(400).render('select_seats', {
+                bus: null,
+                error: 'Invalid bus ID provided.'
+            });
+        }
+
+        // Fetch bus details by ID
+        const bus = await Bus.findById(busId).lean();
+
+        // Handle bus not found
+        if (!bus) {
+            return res.status(404).render('select_seats', {
+                bus: null,
+                error: 'The requested bus schedule could not be found.'
+            });
+        }
+
+        // Ensure bookedSeats is always an array
+        if (!Array.isArray(bus.bookedSeats)) {
+            bus.bookedSeats = [];
+        }
+
+        // Render select_seats.ejs with complete bus information
+        res.render('select_seats', {
+            bus,
+            error: null
+        });
+
+    } catch (err) {
+        console.error('Error fetching bus for seat selection:', err);
+        res.status(500).render('select_seats', {
+            bus: null,
+            error: 'An error occurred while loading the seat selection page.'
+        });
+    }
+});
+
 
 
 const db_path = "mongodb://127.0.0.1:27017/msrtc_bus_booking_system";

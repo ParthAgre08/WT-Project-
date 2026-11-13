@@ -10,7 +10,8 @@ const busSchema = new mongoose.Schema({
     busType: String,
     fare: Number,
     availableSeats: Number,
-    description: String
+    description: String,
+    bookedSeats: [String]
 });
 
 const Bus = mongoose.model(
